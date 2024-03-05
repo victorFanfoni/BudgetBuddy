@@ -3,11 +3,13 @@ package br.com.fiap.BudgetBuddy.controler;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -43,11 +45,63 @@ public class Categoriacontroller {
     public ResponseEntity<Categoria> show(@PathVariable Long id){
         log.info("buscar categoria por id {} ", id);
 
+        /*   
         for(Categoria categoria : repository){
             if (categoria.id().equals(id))
                 return ResponseEntity.ok(categoria);
         }
-        return ResponseEntity.notFound().build();
+        */
+
+        var categoriaEncontrada = repository
+                                .stream()
+                                .filter( c -> c.id().equals(id))
+                                .findFirst();
+
+        
+        if (categoriaEncontrada.isEmpty())
+            return ResponseEntity.notFound().build();
+
+        return ResponseEntity.ok(categoriaEncontrada.get() );
+    }
+
+    @DeleteMapping("{id}")
+    public ResponseEntity<Object> destroy(@PathVariable Long id){
+        log.info("Apagando categoria com id {} ", id);
+
+        var categoriaEncontrada = getCategoriaById(id);
+        
+        if (categoriaEncontrada.isEmpty())
+            return ResponseEntity.notFound().build();
+
+        repository.remove(categoriaEncontrada.get());
+        return ResponseEntity.noContent().build();
+    }
+
+    private Optional<Categoria> getCategoriaById(Long id) {
+        var categoriaEncontrada = repository
+            .stream()
+            .filter(c -> !c.id().equals(id))
+            .findFirst();
+        return categoriaEncontrada;
+    }
+
+    @PostMapping("{id}")
+    public ResponseEntity<Object> atualizar(@PathVariable Long id, @RequestBody Categoria categoria){
+        log.info("atualizar categoria com id {} para {} ", id, categoria);
+
+        var categoriaEncontrada = getCategoriaById(id);
+        
+        if (categoriaEncontrada.isEmpty())
+            return ResponseEntity.notFound().build();
+
+        var categoriaAntiga = categoriaEncontrada.get();
+        var categoriaNova = new Categoria(id, categoria.nome(),categoria.icone());
+
+        repository.remove(categoriaAntiga);
+        repository.add(categoriaNova);
+
+        return ResponseEntity.ok(categoriaNova);
+
     }
 
 }
